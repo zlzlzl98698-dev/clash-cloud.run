@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DIST = '/Users/mac/Desktop/clash-cloud.run/docs/.vitepress/dist';
+const DIST = path.resolve(process.cwd(), 'docs/.vitepress/dist');
 
 function walkHtmlFiles(dir, list = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

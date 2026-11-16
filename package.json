@@ -1,0 +1,20 @@
+{
+  "name": "clash-cloud-run",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "clash机场 (clash-cloud.run) - 中文机场与 VPN 专业评测媒体、品牌数据库与网络工具知识库",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs && pagefind --site docs/.vitepress/dist && node scripts/postbuild-verify.mjs",
+    "build:vitepress": "vitepress build docs",
+    "build:pagefind": "pagefind --site docs/.vitepress/dist",
+    "preview": "vitepress preview docs",
+    "qa": "node scripts/qa-check.mjs"
+  },
+  "devDependencies": {
+    "pagefind": "^1.3.0",
+    "vitepress": "^1.6.3",
+    "vue": "^3.5.13"
+  }
+}

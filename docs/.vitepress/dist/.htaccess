@@ -1,0 +1,109 @@
+# ==============================================================================
+# clash-cloud.run (clash机场) — Apache 2.4 Static Deployment Configuration
+# Compliant with VitePress Static HTML + Pagefind + True HTTP 404 Handling
+# ==============================================================================
+
+# 1. Disable Directory Listing & MultiViews
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+
+# 2. Custom 404 Error Document (Returns true HTTP 404 status code, no SPA soft-404)
+ErrorDocument 404 /404.html
+
+# 3. URL Rewriting & HTTPS / Canonical Host Enforcement
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Block access to hidden files and directories (except .well-known for ACME SSL)
+  RewriteCond %{REQUEST_URI} "!(^|/)\.well-known/([^./]+./?)+$" [NC]
+  RewriteCond %{SCRIPT_FILENAME} -d [OR]
+  RewriteCond %{SCRIPT_FILENAME} -f
+  RewriteRule "(^|/)\." - [F]
+
+  # Redirect www.clash-cloud.run -> clash-cloud.run (301 Permanent)
+  RewriteCond %{HTTP_HOST} ^www\.clash-cloud\.run$ [NC]
+  RewriteRule ^(.*)$ https://clash-cloud.run/$1 [L,R=301]
+
+  # Redirect HTTP -> HTTPS (301 Permanent)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Enforce trailing slash on existing directories (301 Canonical Normalization)
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteCond %{REQUEST_URI} !/$
+  RewriteRule ^(.+)$ https://%{HTTP_HOST}/$1/ [L,R=301]
+
+  # Normalize explicit /index.html to directory root / (301 Canonical Normalization)
+  RewriteCond %{THE_REQUEST} \s/+(.+/)?index\.html[\s?] [NC]
+  RewriteRule ^(.+/)?index\.html$ https://%{HTTP_HOST}/$1 [L,R=301]
+
+  # Serve existing files or directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Support clean URL resolution to .html if a matching .html file exists
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.+?)/?$ $1.html [L]
+</IfModule>
+
+# 4. UTF-8 Default Charset & MIME Types
+AddDefaultCharset UTF-8
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType text/css .css
+  AddType image/svg+xml .svg
+  AddType application/json .json
+  AddType application/xml .xml
+  AddType application/wasm .wasm
+</IfModule>
+
+# 5. Gzip / Deflate Compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json application/xml
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# 6. Browser Caching Policy
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 hour"
+
+  # HTML & Sitemap: revalidate quickly for content updates
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/xml "access plus 1 hour"
+  ExpiresByType text/xml "access plus 1 hour"
+  ExpiresByType application/json "access plus 1 hour"
+
+  # VitePress hashed assets & fonts: long-term cache
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+
+  # Brand logos & speedtest screenshots
+  ExpiresByType image/png "access plus 30 days"
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/webp "access plus 30 days"
+  ExpiresByType image/svg+xml "access plus 30 days"
+</IfModule>
+
+# 7. Security Headers
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+  # Immutable cache header for VitePress hashed assets
+  <FilesMatch "\.(css|js|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Ensure HTML is always fresh
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+</IfModule>
